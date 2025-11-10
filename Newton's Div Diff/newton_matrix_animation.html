@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newton's Divided Difference Matrix Animation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(255,255,255,0.1);
+            padding: 20px;
+            max-width: 95vw;
+            width: 95vw;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .matrix-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .x-matrix {
+            border-collapse: separate;
+            border-spacing: 2px;
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(255, 193, 7, 0.2);
+            border: 2px solid #ffc107;
+        }
+
+        .x-matrix th, .x-matrix td {
+            width: 80px;
+            height: 60px;
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 24px;
+            transition: all 0.5s ease;
+        }
+
+        .x-matrix th {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            font-size: 20px;
+        }
+
+        .x-matrix td {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .x-matrix td.x-highlighted {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border-color: #2980b9;
+            animation: glow 1s infinite alternate;
+            transform: scale(1.05);
+        }
+
+        .matrices-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .matrix-label {
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .matrix {
+            border-collapse: separate;
+            border-spacing: 2px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .matrix th, .matrix td {
+            width: 100px;
+            height: 60px;
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 28px;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+
+        .matrix th {
+            background: linear-gradient(45deg, #34495e, #2c3e50);
+            color: white;
+            font-size: 22px;
+        }
+
+        .matrix td {
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+        }
+
+        .matrix td.filled {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+            border-color: #27ae60;
+            transform: scale(1.05);
+        }
+
+        .matrix td.calculating {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border-color: #e67e22;
+            animation: pulse 1s infinite;
+        }
+
+        .matrix td.source {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border-color: #c0392b;
+            animation: glow 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(231, 76, 60, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8); }
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+
+        .step-info {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .calculation {
+            font-family: 'Courier New', monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .data-points {
+            background: #e8f5e8;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #27ae60;
+        }
+
+        .x-values-panel {
+            display: none;
+        }
+
+        .x-values-highlight {
+            font-weight: bold;
+            color: #e67e22;
+            font-size: 18px;
+            margin: 5px 0;
+        }
+
+        .x-notation {
+            font-family: 'Courier New', monospace;
+            background: #ffc107;
+            color: #212529;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 0 5px;
+            font-weight: bold;
+        }
+
+        .arrow {
+            position: absolute;
+            font-size: 24px;
+            color: #e74c3c;
+            font-weight: bold;
+            animation: bounce 1s infinite;
+            z-index: 10;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .legend {
+            display: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .empty { background: #ecf0f1; border: 2px solid #bdc3c7; }
+        .filled-legend { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+        .calculating-legend { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .source-legend { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+
+        .pseudocode-panel {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            border: 3px solid #34495e;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .pseudocode-panel.visible {
+            display: block;
+            animation: slideIn 0.8s ease-out;
+        }
+
+        .pseudocode-title {
+            color: #3498db;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .pseudocode-content {
+            white-space: pre-line;
+        }
+
+        .pseudocode-keyword {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .pseudocode-comment {
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        .pseudocode-variable {
+            color: #f39c12;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Newton's Divided Difference Matrix</h1>
+        <p class="subtitle">Interactive Animation - Watch How Indexes Merge</p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="startAnimation()">▶️ Start Animation</button>
+            <button onclick="nextStep()" id="nextBtn">⏭️ Next Step</button>
+            <button onclick="prevStep()" id="prevBtn">⏮️ Previous Step</button>
+            <button onclick="resetAnimation()">🔄 Reset</button>
+            <button onclick="toggleAutoPlay()" id="autoPlayBtn">⏸️ Auto Play</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color empty"></div>
+                <span>Empty Cell</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color filled-legend"></div>
+                <span>Calculated Value</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color calculating-legend"></div>
+                <span>Current Calculation</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color source-legend"></div>
+                <span>Source Values</span>
+            </div>
+        </div>
+
+        <div class="data-points">
+            <strong>📊 Data Points:</strong> (0, 1), (1, 4), (2, 9), (3, 16)
+            <br><strong>🎯 Goal:</strong> Build 4×4 divided difference matrix step by step
+        </div>
+
+        <div class="x-values-panel" id="xValuesPanel">
+            <div class="x-values-highlight" id="xValuesInfo">
+                Ready to show x-values involved in each calculation...
+            </div>
+        </div>
+
+        <div class="matrix-container">
+            <div class="matrices-wrapper">
+                <div>
+                    <div class="matrix-label">📊 X-Values Matrix</div>
+                    <table class="x-matrix" id="xMatrix">
+                        <thead>
+                            <tr>
+                                <th>Row</th>
+                                <th>x-values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th>0</th>
+                                <td id="x-cell-0">x₀ = 0</td>
+                            </tr>
+                            <tr>
+                                <th>1</th>
+                                <td id="x-cell-1">x₁ = 1</td>
+                            </tr>
+                            <tr>
+                                <th>2</th>
+                                <td id="x-cell-2">x₂ = 2</td>
+                            </tr>
+                            <tr>
+                                <th>3</th>
+                                <td id="x-cell-3">x₃ = 3</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div>
+                    <div class="matrix-label">🧮 Divided Difference Matrix</div>
+                    <table class="matrix" id="matrix">
+                        <thead>
+                            <tr>
+                                <th>Row</th>
+                                <th>Order 0</th>
+                                <th>Order 1</th>
+                                <th>Order 2</th>
+                                <th>Order 3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th>0</th>
+                                <td id="cell-0-0">?</td>
+                                <td id="cell-0-1">?</td>
+                                <td id="cell-0-2">?</td>
+                                <td id="cell-0-3">?</td>
+                            </tr>
+                            <tr>
+                                <th>1</th>
+                                <td id="cell-1-0">?</td>
+                                <td id="cell-1-1">?</td>
+                                <td id="cell-1-2">?</td>
+                                <td id="cell-1-3">-</td>
+                            </tr>
+                            <tr>
+                                <th>2</th>
+                                <td id="cell-2-0">?</td>
+                                <td id="cell-2-1">?</td>
+                                <td id="cell-2-2">-</td>
+                                <td id="cell-2-3">-</td>
+                            </tr>
+                            <tr>
+                                <th>3</th>
+                                <td id="cell-3-0">?</td>
+                                <td id="cell-3-1">-</td>
+                                <td id="cell-3-2">-</td>
+                                <td id="cell-3-3">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="step-info" id="stepInfo">Ready to start animation...</div>
+            <div class="calculation" id="calculationInfo">
+                Click "Start Animation" to begin the matrix construction process.
+                <br>Watch how each matrix element is calculated from its neighbors!
+            </div>
+        </div>
+
+        <div class="pseudocode-panel" id="pseudocodePanel">
+            <div class="pseudocode-title">📋 Newton's Divided Difference Algorithm</div>
+            <div class="pseudocode-content" id="pseudocodeContent">
+<span class="pseudocode-keyword">def</span> <span class="pseudocode-variable">calc_div_diff</span>(x, y):
+    <span class="pseudocode-keyword">assert</span>(len(x) == len(y))
+    <span class="pseudocode-comment"># Calculate all divided differences in the matrix 'coef'</span>
+    n = len(x)
+    coef = np.zeros((n, n))  <span class="pseudocode-comment"># Initialize n×n matrix</span>
+    
+    <span class="pseudocode-comment"># Step 1: Fill first column with y-values (order 0)</span>
+    <span class="pseudocode-keyword">for</span> i <span class="pseudocode-keyword">in</span> range(n):
+        coef[i][0] = y[i]
+    
+    <span class="pseudocode-comment"># Step 2: Calculate higher order divided differences</span>
+    <span class="pseudocode-keyword">for</span> j <span class="pseudocode-keyword">in</span> range(1, n):        <span class="pseudocode-comment"># For each column</span>
+        <span class="pseudocode-keyword">for</span> i <span class="pseudocode-keyword">in</span> range(n - j):    <span class="pseudocode-comment"># For each row</span>
+            coef[i][j] = (coef[i+1][j-1] - coef[i][j-1]) / (x[i+j] - x[i])
+    
+    <span class="pseudocode-comment"># Step 3: Return first row (Newton polynomial coefficients)</span>
+    <span class="pseudocode-keyword">return</span> coef[0]
+
+<span class="pseudocode-comment"># Matrix Structure:</span>
+<span class="pseudocode-comment"># coef[i][j] = f[xᵢ, xᵢ₊₁, ..., xᵢ₊ⱼ] (j-th order divided difference)</span>
+<span class="pseudocode-comment"># First row: [f[x₀], f[x₀,x₁], f[x₀,x₁,x₂], ..., f[x₀,x₁,...,xₙ₋₁]]</span>
+
+<span class="pseudocode-comment"># Newton Polynomial Construction:</span>
+<span class="pseudocode-comment"># P(x) = a₀ + a₁(x-x₀) + a₂(x-x₀)(x-x₁) + ... + aₙ₋₁(x-x₀)(x-x₁)...(x-xₙ₋₂)</span>
+<span class="pseudocode-comment"># where aᵢ = coef[0][i] (coefficients from first row)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dataPoints = {
+            x: [0, 1, 2, 3],
+            y: [1, 4, 9, 16]
+        };
+
+        const animationSteps = [
+            // Step 0: Initialize Order 0 (function values)
+            {
+                title: "Step 0: Initialize Order 0 (Function Values)",
+                description: "Fill first column with y-values from data points",
+                calculation: "Matrix[i,0] = y[i]\nMatrix[0,0] = y[0] = 1\nMatrix[1,0] = y[1] = 4\nMatrix[2,0] = y[2] = 9\nMatrix[3,0] = y[3] = 16",
+                xValues: "Using all x-values: x₀=0, x₁=1, x₂=2, x₃=3",
+                xHighlights: [0, 1, 2, 3],
+                fillCells: [
+                    {row: 0, col: 0, value: "1"},
+                    {row: 1, col: 0, value: "4"},
+                    {row: 2, col: 0, value: "9"},
+                    {row: 3, col: 0, value: "16"}
+                ],
+                highlightCells: [],
+                sourceCells: []
+            },
+            // Step 1: Calculate Matrix[0,1]
+            {
+                title: "Step 1: Calculate Matrix[0,1] - First Order Difference",
+                description: "Matrix[0,1] ← Matrix[1,0] and Matrix[0,0]",
+                calculation: "f[x₀,x₁] = (f[x₁] - f[x₀]) / (x₁ - x₀)\nMatrix[0,1] = (Matrix[1,0] - Matrix[0,0]) / (x[1] - x[0])\nMatrix[0,1] = (4 - 1) / (1 - 0) = 3",
+                xValues: "Using x-values: <span class='x-notation'>x₀=0</span> and <span class='x-notation'>x₁=1</span>",
+                xHighlights: [0, 1],
+                fillCells: [{row: 0, col: 1, value: "3"}],
+                highlightCells: [{row: 0, col: 1}],
+                sourceCells: [{row: 0, col: 0}, {row: 1, col: 0}]
+            },
+            // Step 2: Calculate Matrix[1,1]
+            {
+                title: "Step 2: Calculate Matrix[1,1] - First Order Difference",
+                description: "Matrix[1,1] ← Matrix[2,0] and Matrix[1,0]",
+                calculation: "f[x₁,x₂] = (f[x₂] - f[x₁]) / (x₂ - x₁)\nMatrix[1,1] = (Matrix[2,0] - Matrix[1,0]) / (x[2] - x[1])\nMatrix[1,1] = (9 - 4) / (2 - 1) = 5",
+                xValues: "Using x-values: <span class='x-notation'>x₁=1</span> and <span class='x-notation'>x₂=2</span>",
+                xHighlights: [1, 2],
+                fillCells: [{row: 1, col: 1, value: "5"}],
+                highlightCells: [{row: 1, col: 1}],
+                sourceCells: [{row: 1, col: 0}, {row: 2, col: 0}]
+            },
+            // Step 3: Calculate Matrix[2,1]
+            {
+                title: "Step 3: Calculate Matrix[2,1] - First Order Difference",
+                description: "Matrix[2,1] ← Matrix[3,0] and Matrix[2,0]",
+                calculation: "f[x₂,x₃] = (f[x₃] - f[x₂]) / (x₃ - x₂)\nMatrix[2,1] = (Matrix[3,0] - Matrix[2,0]) / (x[3] - x[2])\nMatrix[2,1] = (16 - 9) / (3 - 2) = 7",
+                xValues: "Using x-values: <span class='x-notation'>x₂=2</span> and <span class='x-notation'>x₃=3</span>",
+                xHighlights: [2, 3],
+                fillCells: [{row: 2, col: 1, value: "7"}],
+                highlightCells: [{row: 2, col: 1}],
+                sourceCells: [{row: 2, col: 0}, {row: 3, col: 0}]
+            },
+            // Step 4: Calculate Matrix[0,2]
+            {
+                title: "Step 4: Calculate Matrix[0,2] - Second Order Difference",
+                description: "Matrix[0,2] ← Matrix[1,1] and Matrix[0,1]",
+                calculation: "f[x₀,x₁,x₂] = (f[x₁,x₂] - f[x₀,x₁]) / (x₂ - x₀)\nMatrix[0,2] = (Matrix[1,1] - Matrix[0,1]) / (x[2] - x[0])\nMatrix[0,2] = (5 - 3) / (2 - 0) = 1",
+                xValues: "Using x-values: <span class='x-notation'>x₀=0</span>, <span class='x-notation'>x₁=1</span>, and <span class='x-notation'>x₂=2</span>",
+                xHighlights: [0, 1, 2],
+                fillCells: [{row: 0, col: 2, value: "1"}],
+                highlightCells: [{row: 0, col: 2}],
+                sourceCells: [{row: 0, col: 1}, {row: 1, col: 1}]
+            },
+            // Step 5: Calculate Matrix[1,2]
+            {
+                title: "Step 5: Calculate Matrix[1,2] - Second Order Difference",
+                description: "Matrix[1,2] ← Matrix[2,1] and Matrix[1,1]",
+                calculation: "f[x₁,x₂,x₃] = (f[x₂,x₃] - f[x₁,x₂]) / (x₃ - x₁)\nMatrix[1,2] = (Matrix[2,1] - Matrix[1,1]) / (x[3] - x[1])\nMatrix[1,2] = (7 - 5) / (3 - 1) = 1",
+                xValues: "Using x-values: <span class='x-notation'>x₁=1</span>, <span class='x-notation'>x₂=2</span>, and <span class='x-notation'>x₃=3</span>",
+                xHighlights: [1, 2, 3],
+                fillCells: [{row: 1, col: 2, value: "1"}],
+                highlightCells: [{row: 1, col: 2}],
+                sourceCells: [{row: 1, col: 1}, {row: 2, col: 1}]
+            },
+            // Step 6: Calculate Matrix[0,3]
+            {
+                title: "Step 6: Calculate Matrix[0,3] - Third Order Difference",
+                description: "Matrix[0,3] ← Matrix[1,2] and Matrix[0,2]",
+                calculation: "f[x₀,x₁,x₂,x₃] = (f[x₁,x₂,x₃] - f[x₀,x₁,x₂]) / (x₃ - x₀)\nMatrix[0,3] = (Matrix[1,2] - Matrix[0,2]) / (x[3] - x[0])\nMatrix[0,3] = (1 - 1) / (3 - 0) = 0",
+                xValues: "Using all x-values: <span class='x-notation'>x₀=0</span>, <span class='x-notation'>x₁=1</span>, <span class='x-notation'>x₂=2</span>, and <span class='x-notation'>x₃=3</span>",
+                xHighlights: [0, 1, 2, 3],
+                fillCells: [{row: 0, col: 3, value: "0"}],
+                highlightCells: [{row: 0, col: 3}],
+                sourceCells: [{row: 0, col: 2}, {row: 1, col: 2}]
+            },
+            // Final step
+            {
+                title: "🎉 Complete! Matrix Construction Finished",
+                description: "All divided differences calculated. First row contains polynomial coefficients.",
+                calculation: "Newton's Polynomial Coefficients:\na₀ = 1, a₁ = 3, a₂ = 1, a₃ = 0\n\nPolynomial: p(x) = 1 + 3(x-0) + 1(x-0)(x-1) + 0(x-0)(x-1)(x-2)\nSimplified: p(x) = x² + 2x + 1",
+                xValues: "Final polynomial uses all x-values: <span class='x-notation'>x₀=0</span>, <span class='x-notation'>x₁=1</span>, <span class='x-notation'>x₂=2</span>, <span class='x-notation'>x₃=3</span>",
+                xHighlights: [0, 1, 2, 3],
+                fillCells: [],
+                highlightCells: [{row: 0, col: 0}, {row: 0, col: 1}, {row: 0, col: 2}, {row: 0, col: 3}],
+                sourceCells: [],
+                showPseudocode: true
+            }
+        ];
+
+        let currentStep = -1;
+        let autoPlay = false;
+        let autoPlayInterval;
+
+        function updateProgressBar() {
+            const progress = ((currentStep + 1) / animationSteps.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function clearAllHighlights() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const cell = document.getElementById(`cell-${i}-${j}`);
+                    if (cell) {
+                        cell.classList.remove('calculating', 'source', 'filled');
+                    }
+                }
+                // Clear x-matrix highlights
+                const xCell = document.getElementById(`x-cell-${i}`);
+                if (xCell) {
+                    xCell.classList.remove('x-highlighted');
+                }
+            }
+        }
+
+        function executeStep(stepIndex) {
+            if (stepIndex < 0 || stepIndex >= animationSteps.length) return;
+            
+            const step = animationSteps[stepIndex];
+            
+            // Clear previous highlights
+            clearAllHighlights();
+            
+            // Fill cells from this step
+            step.fillCells.forEach(cell => {
+                const cellElement = document.getElementById(`cell-${cell.row}-${cell.col}`);
+                if (cellElement) {
+                    cellElement.textContent = cell.value;
+                    cellElement.classList.add('filled');
+                }
+            });
+            
+            // Highlight current calculation
+            step.highlightCells.forEach(cell => {
+                const cellElement = document.getElementById(`cell-${cell.row}-${cell.col}`);
+                if (cellElement) {
+                    cellElement.classList.add('calculating');
+                }
+            });
+            
+            // Highlight source cells
+            step.sourceCells.forEach(cell => {
+                const cellElement = document.getElementById(`cell-${cell.row}-${cell.col}`);
+                if (cellElement) {
+                    cellElement.classList.add('source');
+                }
+            });
+            
+            // Highlight x-values being used
+            if (step.xHighlights) {
+                step.xHighlights.forEach(xIndex => {
+                    const xCell = document.getElementById(`x-cell-${xIndex}`);
+                    if (xCell) {
+                        xCell.classList.add('x-highlighted');
+                    }
+                });
+            }
+            
+            // Update info panel
+            document.getElementById('stepInfo').textContent = step.title;
+            document.getElementById('calculationInfo').innerHTML = step.calculation.replace(/\n/g, '<br>');
+            
+            // Update x-values panel
+            document.getElementById('xValuesInfo').innerHTML = step.xValues || "No x-values specified for this step";
+            
+            // Show/hide pseudocode panel
+            const pseudocodePanel = document.getElementById('pseudocodePanel');
+            if (step.showPseudocode) {
+                pseudocodePanel.classList.add('visible');
+            } else {
+                pseudocodePanel.classList.remove('visible');
+            }
+            
+            // Update progress
+            updateProgressBar();
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = stepIndex === 0;
+            document.getElementById('nextBtn').disabled = stepIndex === animationSteps.length - 1;
+        }
+
+        function startAnimation() {
+            currentStep = 0;
+            executeStep(currentStep);
+        }
+
+        function nextStep() {
+            if (currentStep < animationSteps.length - 1) {
+                currentStep++;
+                executeStep(currentStep);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                executeStep(currentStep);
+            }
+        }
+
+        function resetAnimation() {
+            currentStep = -1;
+            clearAllHighlights();
+            
+            // Reset all cells to initial state
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const cell = document.getElementById(`cell-${i}-${j}`);
+                    if (cell && !cell.textContent.includes('-')) {
+                        cell.textContent = '?';
+                    }
+                }
+            }
+            
+            document.getElementById('stepInfo').textContent = 'Ready to start animation...';
+            document.getElementById('calculationInfo').innerHTML = 'Click "Start Animation" to begin the matrix construction process.<br>Watch how each matrix element is calculated from its neighbors!';
+            document.getElementById('xValuesInfo').innerHTML = 'Ready to show x-values involved in each calculation...';
+            
+            updateProgressBar();
+            document.getElementById('prevBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = false;
+            
+            if (autoPlay) {
+                toggleAutoPlay();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlay = !autoPlay;
+            const btn = document.getElementById('autoPlayBtn');
+            
+            if (autoPlay) {
+                btn.textContent = '⏸️ Pause';
+                if (currentStep === -1) {
+                    startAnimation();
+                }
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < animationSteps.length - 1) {
+                        nextStep();
+                    } else {
+                        toggleAutoPlay();
+                    }
+                }, 2000);
+            } else {
+                btn.textContent = '▶️ Auto Play';
+                clearInterval(autoPlayInterval);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            resetAnimation();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    if (currentStep === -1) {
+                        startAnimation();
+                    } else {
+                        nextStep();
+                    }
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    prevStep();
+                    break;
+                case 'r':
+                case 'R':
+                    resetAnimation();
+                    break;
+                case 'p':
+                case 'P':
+                    toggleAutoPlay();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
